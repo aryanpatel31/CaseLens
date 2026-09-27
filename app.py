@@ -94,5 +94,38 @@ def analyze():
     result = response.choices[0].message.content
     return jsonify({"result": result, "redacted_input": redacted_text})
 
+@app.route("/chat", methods=["POST"])
+def chat():
+    case_text = request.form.get("case_text", "")
+    question = request.form.get("question", "")
+    history = request.form.get("history", "[]")  # JSON string of prior Q&A pairs
+
+    import json
+    history_list = json.loads(history)
+
+    if not case_text.strip() or not question.strip():
+        return jsonify({"error": "Missing case text or question"}), 400
+
+    redacted_text = redact_pii(case_text)
+    numbered_text = add_line_numbers(redacted_text)
+
+    chat_system_prompt = f"""You are an assistant helping a security clearance adjudicator review a case file. The case file below has line numbers in brackets. Answer the adjudicator's questions based ONLY on the information in the case file. If the case file doesn't contain the answer, say so clearly — do not guess or make up information. Cite line numbers when relevant. Do not make approve/deny recommendations.
+                            CASE FILE:
+                            {numbered_text}"""
+
+    messages = [{"role": "system", "content": chat_system_prompt}]
+    for turn in history_list:
+        messages.append({"role": "user", "content": turn["question"]})
+        messages.append({"role": "assistant", "content": turn["answer"]})
+    messages.append({"role": "user", "content": question})
+
+    response = client.chat.completions.create(
+        model="openai/gpt-oss-120b",
+        messages=messages
+    )
+
+    answer = response.choices[0].message.content
+    return jsonify({"answer": answer})
+
 if __name__ == "__main__":
     app.run(debug=True, port=5000)

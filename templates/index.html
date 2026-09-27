@@ -10,6 +10,12 @@
     <button onclick="analyze()">Analyze</button>
     <pre id="output"></pre>
 
+    <hr>
+    <h3>Ask a follow-up question</h3>
+    <input type="text" id="chatQuestion" placeholder="e.g., What is the total delinquent debt?" style="width: 400px;">
+    <button onclick="askQuestion()">Ask</button>
+    <div id="chatHistory"></div>
+
     <script>
         async function analyze() {
             const text = document.getElementById("caseText").value;
@@ -20,6 +26,30 @@
             });
             const data = await res.json();
             document.getElementById("output").textContent = data.result || data.error;
+        }
+
+        let chatHistory = [];
+
+        async function askQuestion() {
+            const question = document.getElementById("chatQuestion").value;
+            const caseText = document.getElementById("caseText").value;
+
+            if (!question.trim()) return;
+
+            const res = await fetch("/chat", {
+                method: "POST",
+                headers: { "Content-Type": "application/x-www-form-urlencoded" },
+                body: "case_text=" + encodeURIComponent(caseText) +
+                      "&question=" + encodeURIComponent(question) +
+                      "&history=" + encodeURIComponent(JSON.stringify(chatHistory))
+            });
+            const data = await res.json();
+
+            chatHistory.push({ question: question, answer: data.answer });
+
+            const historyDiv = document.getElementById("chatHistory");
+            historyDiv.innerHTML += `<p><b>Q:</b> ${question}<br><b>A:</b> ${data.answer}</p>`;
+            document.getElementById("chatQuestion").value = "";
         }
     </script>
 </body>
