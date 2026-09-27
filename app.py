@@ -3,6 +3,7 @@ from flask import Flask, request, jsonify, render_template
 from dotenv import load_dotenv
 from groq import Groq
 import spacy
+import json
 
 nlp = spacy.load("en_core_web_sm")
 
@@ -50,24 +51,33 @@ M - Use of Information Technology
 
 SYSTEM_PROMPT = f"""You are an assistant that helps security clearance adjudicators organize case file information. You do NOT make approve/deny recommendations. The case file text you receive will have line numbers in brackets like [Line 5] at the start of each line.
 
-Your job is to:
-
-1. Read the case file text provided.
-2. Identify which of the following adjudicative guidelines are relevant to information in the case:
+Your job is to analyze the case against these adjudicative guidelines:
 {GUIDELINES}
 
-3. For each relevant guideline, extract the specific evidence from the case file that relates to it, and cite the exact line number(s) where that evidence appears.
-4. Note anything that is unclear, missing, or unverified.
-5. Suggest one targeted follow-up question the adjudicator could ask to resolve each unclear item.
+For EACH of the 13 guidelines, output an assessment — even if there's no relevant information (mark those as "green" with evidence "No relevant information found").
 
-Format your response clearly with a section for each relevant guideline, like this:
+Respond ONLY with valid JSON in this exact structure, no other text before or after:
 
-## Guideline [Letter] - [Name]
-**Evidence:** [what the case file says] (Line [X])
-**Unclear/Missing:** [what's not documented or verified, if anything]
-**Suggested Follow-up:** [a specific question, if applicable]
+{{
+  "guidelines": [
+    {{
+      "letter": "A",
+      "name": "Allegiance to the United States",
+      "risk": "green",
+      "evidence": "string describing what the case file says, or 'No relevant information found'",
+      "unclear": "string describing what's missing/unverified, or empty string if none",
+      "followup": "a specific follow-up question, or empty string if none",
+      "citations": "line numbers referenced, e.g. 'Lines 9-10', or empty string"
+    }}
+  ]
+}}
 
-Only include guidelines that are actually relevant to the case file. Do not recommend approval or denial. Always cite line numbers for evidence you reference."""
+Risk levels:
+- "green": no concern, or no relevant information
+- "yellow": some relevant information exists but is unclear, unverified, or needs follow-up
+- "red": significant concern that clearly implicates the guideline (e.g., large undisclosed debt, unverified foreign government ties, deceptive conduct)
+
+Include all 13 guidelines in the array, in order A through M. Respond with ONLY the JSON object, nothing else."""
 
 @app.route("/analyze", methods=["POST"])
 def analyze():
@@ -79,20 +89,25 @@ def analyze():
     redacted_text = redact_pii(case_text)
     numbered_text = add_line_numbers(redacted_text)
 
-    print("=== NUMBERED + REDACTED TEXT ===")
-    print(numbered_text)
-    print("=====================")
-
     response = client.chat.completions.create(
         model="openai/gpt-oss-120b",
         messages=[
             {"role": "system", "content": SYSTEM_PROMPT},
             {"role": "user", "content": f"Here is the case file:\n\n{numbered_text}"}
-        ]
+        ],
+        response_format={"type": "json_object"}
     )
 
-    result = response.choices[0].message.content
-    return jsonify({"result": result, "redacted_input": redacted_text})
+    raw = response.choices[0].message.content
+    try:
+        parsed = json.loads(raw)
+    except json.JSONDecodeError:
+        return jsonify({"error": "Failed to parse model output", "raw": raw}), 500
+
+    print("=== PARSED GUIDELINES ===")
+    print(json.dumps(parsed, indent=2))
+    print("=====================")
+    return jsonify({"guidelines": parsed.get("guidelines", []), "redacted_input": redacted_text})
 
 @app.route("/chat", methods=["POST"])
 def chat():

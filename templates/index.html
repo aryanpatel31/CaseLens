@@ -2,30 +2,182 @@
 <html>
 <head>
     <title>CaseLens</title>
+    <style>
+        * { box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            max-width: 900px;
+            margin: 40px auto;
+            padding: 0 20px;
+            color: #1a1a1a;
+            background: #fafafa;
+        }
+        h1 {
+            font-weight: 600;
+            font-size: 28px;
+            margin-bottom: 4px;
+        }
+        .subtitle {
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 14px;
+        }
+        textarea {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-family: inherit;
+            font-size: 14px;
+            resize: vertical;
+        }
+        button {
+            background: #1a1a1a;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            font-size: 14px;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+        button:hover { background: #333; }
+        button:disabled { background: #999; cursor: not-allowed; }
+
+        #dashboard {
+            margin-top: 30px;
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+            gap: 12px;
+        }
+        .card {
+            background: white;
+            border-radius: 10px;
+            padding: 16px;
+            border-left: 5px solid #ccc;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+        }
+        .card.green { border-left-color: #34a853; }
+        .card.yellow { border-left-color: #fbbc04; }
+        .card.red { border-left-color: #ea4335; }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+        .card-title {
+            font-weight: 600;
+            font-size: 14px;
+        }
+        .badge {
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            padding: 2px 8px;
+            border-radius: 10px;
+            color: white;
+        }
+        .badge.green { background: #34a853; }
+        .badge.yellow { background: #fbbc04; color: #333; }
+        .badge.red { background: #ea4335; }
+
+        .card-body { font-size: 13px; color: #333; line-height: 1.5; }
+        .card-body b { font-weight: 600; }
+        .citation { color: #888; font-size: 12px; }
+
+        .expandable { cursor: pointer; }
+        .details { display: none; margin-top: 8px; padding-top: 8px; border-top: 1px solid #eee; }
+        .details.open { display: block; }
+
+        #chatSection { margin-top: 40px; }
+        #chatHistory { margin-top: 16px; }
+        .chat-turn { background: white; padding: 12px; border-radius: 8px; margin-bottom: 10px; font-size: 14px; }
+        .chat-q { font-weight: 600; margin-bottom: 4px; }
+
+        #loading { display: none; color: #666; margin-top: 10px; font-size: 14px; }
+    </style>
 </head>
 <body>
-    <h1>CaseLens - Test</h1>
-    <textarea id="caseText" rows="10" cols="60" placeholder="Paste case text here..."></textarea>
-    <br>
-    <button onclick="analyze()">Analyze</button>
-    <pre id="output"></pre>
+    <h1>CaseLens</h1>
+    <div class="subtitle">AI-assisted evidence organization for security clearance review — decision support only, not decision-making.</div>
 
-    <hr>
-    <h3>Ask a follow-up question</h3>
-    <input type="text" id="chatQuestion" placeholder="e.g., What is the total delinquent debt?" style="width: 400px;">
-    <button onclick="askQuestion()">Ask</button>
-    <div id="chatHistory"></div>
+    <textarea id="caseText" rows="10" placeholder="Paste case file text here..."></textarea>
+    <br>
+    <button onclick="analyze()" id="analyzeBtn">Analyze Case</button>
+    <div id="loading">Analyzing case file...</div>
+
+    <div id="dashboard"></div>
+
+    <div id="chatSection" style="display:none;">
+        <h3>Ask about this case</h3>
+        <input type="text" id="chatQuestion" placeholder="e.g., What is the total delinquent debt?" style="width: 60%; padding: 8px; border-radius: 6px; border: 1px solid #ddd;">
+        <button onclick="askQuestion()">Ask</button>
+        <div id="chatHistory"></div>
+    </div>
 
     <script>
         async function analyze() {
             const text = document.getElementById("caseText").value;
+            if (!text.trim()) return;
+
+            document.getElementById("analyzeBtn").disabled = true;
+            document.getElementById("loading").style.display = "block";
+            document.getElementById("dashboard").innerHTML = "";
+
             const res = await fetch("/analyze", {
                 method: "POST",
                 headers: { "Content-Type": "application/x-www-form-urlencoded" },
                 body: "case_text=" + encodeURIComponent(text)
             });
             const data = await res.json();
-            document.getElementById("output").textContent = data.result || data.error;
+
+            document.getElementById("loading").style.display = "none";
+            document.getElementById("analyzeBtn").disabled = false;
+
+            if (data.error) {
+                document.getElementById("dashboard").innerHTML = "<p>Error: " + data.error + "</p>";
+                return;
+            }
+
+            renderDashboard(data.guidelines);
+            document.getElementById("chatSection").style.display = "block";
+        }
+
+        function renderDashboard(guidelines) {
+            const dashboard = document.getElementById("dashboard");
+            dashboard.innerHTML = "";
+
+            guidelines.forEach((g, i) => {
+                const card = document.createElement("div");
+                card.className = "card " + g.risk;
+
+                let detailsHtml = "";
+                if (g.evidence && g.evidence !== "No relevant information found") {
+                    detailsHtml += `<div><b>Evidence:</b> ${g.evidence} <span class="citation">(${g.citations})</span></div>`;
+                }
+                if (g.unclear) {
+                    detailsHtml += `<div style="margin-top:6px;"><b>Unclear:</b> ${g.unclear}</div>`;
+                }
+                if (g.followup) {
+                    detailsHtml += `<div style="margin-top:6px;"><b>Follow-up:</b> ${g.followup}</div>`;
+                }
+                if (!detailsHtml) detailsHtml = "<div>No relevant information found.</div>";
+
+                card.innerHTML = `
+                    <div class="card-header expandable" onclick="toggleDetails(${i})">
+                        <span class="card-title">${g.letter} — ${g.name}</span>
+                        <span class="badge ${g.risk}">${g.risk}</span>
+                    </div>
+                    <div class="details" id="details-${i}">${detailsHtml}</div>
+                `;
+                dashboard.appendChild(card);
+            });
+        }
+
+        function toggleDetails(i) {
+            document.getElementById(`details-${i}`).classList.toggle("open");
         }
 
         let chatHistory = [];
@@ -33,7 +185,6 @@
         async function askQuestion() {
             const question = document.getElementById("chatQuestion").value;
             const caseText = document.getElementById("caseText").value;
-
             if (!question.trim()) return;
 
             const res = await fetch("/chat", {
@@ -48,7 +199,7 @@
             chatHistory.push({ question: question, answer: data.answer });
 
             const historyDiv = document.getElementById("chatHistory");
-            historyDiv.innerHTML += `<p><b>Q:</b> ${question}<br><b>A:</b> ${data.answer}</p>`;
+            historyDiv.innerHTML += `<div class="chat-turn"><div class="chat-q">Q: ${question}</div><div>${data.answer}</div></div>`;
             document.getElementById("chatQuestion").value = "";
         }
     </script>
