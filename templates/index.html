@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>CaseLens</title>
+</head>
+<body>
+    <h1>CaseLens - Test</h1>
+    <textarea id="caseText" rows="10" cols="60" placeholder="Paste case text here..."></textarea>
+    <br>
+    <button onclick="analyze()">Analyze</button>
+    <pre id="output"></pre>
+
+    <script>
+        async function analyze() {
+            const text = document.getElementById("caseText").value;
+            const res = await fetch("/analyze", {
+                method: "POST",
+                headers: { "Content-Type": "application/x-www-form-urlencoded" },
+                body: "case_text=" + encodeURIComponent(text)
+            });
+            const data = await res.json();
+            document.getElementById("output").textContent = data.result || data.error;
+        }
+    </script>
+</body>
+</html>
