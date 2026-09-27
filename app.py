@@ -11,6 +11,8 @@ def redact_pii(text):
     redacted = text
     # process in reverse so character offsets don't shift as replacement happens
     for ent in reversed(doc.ents):
+        if ent.label_ == "PERSON" and len(ent.text.split()) < 2:
+            continue  # skip likely false positives (single capitalized words)
         if ent.label_ in ("PERSON", "GPE", "ORG", "LOC", "NORP"):
             placeholder = f"[REDACTED_{ent.label_}]"
             redacted = redacted[:ent.start_char] + placeholder + redacted[ent.end_char:]
@@ -68,6 +70,9 @@ def analyze():
         return jsonify({"error": "No case text provided"}), 400
 
     redacted_text = redact_pii(case_text)
+    print("=== REDACTED TEXT ===")
+    print(redacted_text)
+    print("=====================")  
 
     response = client.chat.completions.create(
         model="openai/gpt-oss-120b",
