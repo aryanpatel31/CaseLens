@@ -2,6 +2,19 @@ import os
 from flask import Flask, request, jsonify, render_template
 from dotenv import load_dotenv
 from groq import Groq
+import spacy
+
+nlp = spacy.load("en_core_web_sm")
+
+def redact_pii(text):
+    doc = nlp(text)
+    redacted = text
+    # process in reverse so character offsets don't shift as replacement happens
+    for ent in reversed(doc.ents):
+        if ent.label_ in ("PERSON", "GPE", "ORG", "LOC", "NORP"):
+            placeholder = f"[REDACTED_{ent.label_}]"
+            redacted = redacted[:ent.start_char] + placeholder + redacted[ent.end_char:]
+    return redacted
 
 load_dotenv()
 
@@ -54,16 +67,18 @@ def analyze():
     if not case_text.strip():
         return jsonify({"error": "No case text provided"}), 400
 
+    redacted_text = redact_pii(case_text)
+
     response = client.chat.completions.create(
         model="openai/gpt-oss-120b",
         messages=[
             {"role": "system", "content": SYSTEM_PROMPT},
-            {"role": "user", "content": f"Here is the case file:\n\n{case_text}"}
+            {"role": "user", "content": f"Here is the case file:\n\n{redacted_text}"}
         ]
     )
 
     result = response.choices[0].message.content
-    return jsonify({"result": result})
+    return jsonify({"result": result, "redacted_input": redacted_text})
 
 if __name__ == "__main__":
     app.run(debug=True, port=5000)
