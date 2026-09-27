@@ -6,6 +6,11 @@ import spacy
 
 nlp = spacy.load("en_core_web_sm")
 
+def add_line_numbers(text):
+    lines = text.split("\n")
+    numbered = "\n".join(f"[Line {i+1}] {line}" for i, line in enumerate(lines))
+    return numbered
+
 def redact_pii(text):
     doc = nlp(text)
     redacted = text
@@ -43,24 +48,26 @@ L - Outside Activities
 M - Use of Information Technology
 """
 
-SYSTEM_PROMPT = f"""You are an assistant that helps security clearance adjudicators organize case file information. You do NOT make approve/deny recommendations. Your job is to:
+SYSTEM_PROMPT = f"""You are an assistant that helps security clearance adjudicators organize case file information. You do NOT make approve/deny recommendations. The case file text you receive will have line numbers in brackets like [Line 5] at the start of each line.
+
+Your job is to:
 
 1. Read the case file text provided.
 2. Identify which of the following adjudicative guidelines are relevant to information in the case:
 {GUIDELINES}
 
-3. For each relevant guideline, extract the specific evidence from the case file that relates to it.
+3. For each relevant guideline, extract the specific evidence from the case file that relates to it, and cite the exact line number(s) where that evidence appears.
 4. Note anything that is unclear, missing, or unverified.
 5. Suggest one targeted follow-up question the adjudicator could ask to resolve each unclear item.
 
 Format your response clearly with a section for each relevant guideline, like this:
 
 ## Guideline [Letter] - [Name]
-**Evidence:** [what the case file says]
+**Evidence:** [what the case file says] (Line [X])
 **Unclear/Missing:** [what's not documented or verified, if anything]
 **Suggested Follow-up:** [a specific question, if applicable]
 
-Only include guidelines that are actually relevant to the case file. Do not recommend approval or denial."""
+Only include guidelines that are actually relevant to the case file. Do not recommend approval or denial. Always cite line numbers for evidence you reference."""
 
 @app.route("/analyze", methods=["POST"])
 def analyze():
@@ -70,15 +77,17 @@ def analyze():
         return jsonify({"error": "No case text provided"}), 400
 
     redacted_text = redact_pii(case_text)
-    print("=== REDACTED TEXT ===")
-    print(redacted_text)
-    print("=====================")  
+    numbered_text = add_line_numbers(redacted_text)
+
+    print("=== NUMBERED + REDACTED TEXT ===")
+    print(numbered_text)
+    print("=====================")
 
     response = client.chat.completions.create(
         model="openai/gpt-oss-120b",
         messages=[
             {"role": "system", "content": SYSTEM_PROMPT},
-            {"role": "user", "content": f"Here is the case file:\n\n{redacted_text}"}
+            {"role": "user", "content": f"Here is the case file:\n\n{numbered_text}"}
         ]
     )
 
