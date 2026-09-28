@@ -72,10 +72,12 @@ Respond ONLY with valid JSON in this exact structure, no other text before or af
   ]
 }}
 
-Risk levels:
-- "green": no concern, or no relevant information
-- "yellow": some relevant information exists but is unclear, unverified, or needs follow-up
-- "red": significant concern that clearly implicates the guideline (e.g., large undisclosed debt, unverified foreign government ties, deceptive conduct)
+Risk levels — apply these definitions strictly and consistently:
+- "green": No information relevant to this guideline exists in the case file, OR the information present raises no concern and requires no follow-up.
+- "yellow": Relevant information exists, but it is incomplete, unverified, or requires clarification before an adjudicator could assess it. Use yellow whenever documentation is missing or a claim is self-reported without independent verification, even if the underlying facts (once verified) might turn out to be fine.
+- "red": The information itself — even if fully verified as stated — would constitute a specific documented concern under this guideline (e.g., unpaid debt exceeding $10,000 with no resolution plan, direct evidence of foreign government employment, undisclosed criminal conviction, deliberate omission of information on the SF-86).
+
+Important: unverified or undocumented claims should be "yellow," not "red," unless the underlying fact pattern itself is inherently concerning regardless of verification status.
 
 Include all 13 guidelines in the array, in order A through M. Respond with ONLY the JSON object, nothing else."""
 
