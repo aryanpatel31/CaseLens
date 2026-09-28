@@ -12,6 +12,14 @@ function escapeHtml(str) {
     return div.innerHTML;
 }
 
+// matches patterns like "Line 9", "Lines 9-10", "【Line 34-36】", etc.
+function linkifyCitations(text) {
+    return text.replace(/(?:【)?Lines?\s*(\d+)(?:\s*\p{Pd}\s*(?:Lines?\s*)?(\d+))?(?:】)?/giu, (match, start, end) => {
+        const citation = end ? `Lines ${start}-${end}` : `Line ${start}`;
+        return `<span class="citation-link" onclick="jumpToLine('${citation}')">${match}</span>`;
+    });
+}
+
 function jumpToLine(citationStr) {
     const nums = citationStr.match(/\d+/g);
     if (!nums) return;
@@ -114,6 +122,6 @@ async function askQuestion() {
     chatHistory.push({ question: question, answer: data.answer });
 
     const historyDiv = document.getElementById("chatHistory");
-    historyDiv.innerHTML += `<div class="chat-turn"><div class="chat-q">Q: ${question}</div><div>${data.answer}</div></div>`;
+    historyDiv.innerHTML += `<div class="chat-turn"><div class="chat-q">Q: ${question}</div><div>${linkifyCitations(data.answer)}</div></div>`;
     document.getElementById("chatQuestion").value = "";
 }
