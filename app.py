@@ -95,7 +95,8 @@ def analyze():
             {"role": "system", "content": SYSTEM_PROMPT},
             {"role": "user", "content": f"Here is the case file:\n\n{numbered_text}"}
         ],
-        response_format={"type": "json_object"}
+        response_format={"type": "json_object"},
+        temperature=0.3
     )
 
     raw = response.choices[0].message.content
