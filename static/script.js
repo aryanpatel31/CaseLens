@@ -119,9 +119,14 @@ async function askQuestion() {
     });
     const data = await res.json();
 
-    chatHistory.push({ question: question, answer: data.answer });
+    const answer = data.answer || ("Error: " + data.error);
+
+    // only saving successful answers to history so a failed call doesn't pollute later context
+    if (data.answer) {
+        chatHistory.push({ question: question, answer: data.answer });
+    }
 
     const historyDiv = document.getElementById("chatHistory");
-    historyDiv.innerHTML += `<div class="chat-turn"><div class="chat-q">Q: ${question}</div><div>${linkifyCitations(data.answer)}</div></div>`;
+    historyDiv.innerHTML += `<div class="chat-turn"><div class="chat-q">Q: ${question}</div><div>${linkifyCitations(answer)}</div></div>`;
     document.getElementById("chatQuestion").value = "";
 }
