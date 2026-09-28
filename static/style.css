@@ -1,0 +1,208 @@
+#caseViewer {
+    max-height: 400px;
+    overflow-y: auto;
+    background: white;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    padding: 12px;
+    font-family: "SF Mono", Consolas, monospace;
+    font-size: 12px;
+    line-height: 1.6;
+    margin-top: 16px;
+}
+
+.line {
+    padding: 1px 4px;
+    white-space: pre-wrap;
+}
+
+.line-num {
+    color: #aaa;
+    margin-right: 8px;
+    user-select: none;
+}
+
+.line.highlighted {
+    background: #fff3cd;
+    border-radius: 3px;
+}
+
+.citation-link {
+    color: #1a73e8;
+    cursor: pointer;
+    text-decoration: underline;
+}
+
+* {
+    box-sizing: border-box;
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    max-width: 900px;
+    margin: 40px auto;
+    padding: 0 20px;
+    color: #1a1a1a;
+    background: #fafafa;
+}
+
+h1 {
+    font-weight: 600;
+    font-size: 28px;
+    margin-bottom: 4px;
+}
+
+.subtitle {
+    color: #666;
+    margin-bottom: 30px;
+    font-size: 14px;
+}
+
+textarea {
+    width: 100%;
+    padding: 12px;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    font-family: inherit;
+    font-size: 14px;
+    resize: vertical;
+}
+
+button {
+    background: #1a1a1a;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 6px;
+    font-size: 14px;
+    cursor: pointer;
+    margin-top: 10px;
+}
+
+button:hover {
+    background: #333;
+}
+
+button:disabled {
+    background: #999;
+    cursor: not-allowed;
+}
+
+#dashboard {
+    margin-top: 30px;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 12px;
+}
+
+.card {
+    background: white;
+    border-radius: 10px;
+    padding: 16px;
+    border-left: 5px solid #ccc;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+}
+
+.card.green {
+    border-left-color: #34a853;
+}
+
+.card.yellow {
+    border-left-color: #fbbc04;
+}
+
+.card.red {
+    border-left-color: #ea4335;
+}
+
+.card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+}
+
+.card-title {
+    font-weight: 600;
+    font-size: 14px;
+}
+
+.badge {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    padding: 2px 8px;
+    border-radius: 10px;
+    color: white;
+}
+
+.badge.green {
+    background: #34a853;
+}
+
+.badge.yellow {
+    background: #fbbc04;
+    color: #333;
+}
+
+.badge.red {
+    background: #ea4335;
+}
+
+.card-body {
+    font-size: 13px;
+    color: #333;
+    line-height: 1.5;
+}
+
+.card-body b {
+    font-weight: 600;
+}
+
+.citation {
+    color: #888;
+    font-size: 12px;
+}
+
+.expandable {
+    cursor: pointer;
+}
+
+.details {
+    display: none;
+    margin-top: 8px;
+    padding-top: 8px;
+    border-top: 1px solid #eee;
+}
+
+.details.open {
+    display: block;
+}
+
+#chatSection {
+    margin-top: 40px;
+}
+
+#chatHistory {
+    margin-top: 16px;
+}
+
+.chat-turn {
+    background: white;
+    padding: 12px;
+    border-radius: 8px;
+    margin-bottom: 10px;
+    font-size: 14px;
+}
+
+.chat-q {
+    font-weight: 600;
+    margin-bottom: 4px;
+}
+
+#loading {
+    display: none;
+    color: #666;
+    margin-top: 10px;
+    font-size: 14px;
+}
