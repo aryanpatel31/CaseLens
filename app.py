@@ -114,14 +114,15 @@ def analyze():
 
 @app.route("/chat", methods=["POST"])
 def chat():
-    case_text = request.form.get("case_text", "")
-    question = request.form.get("question", "")
-    history = json.loads(request.form.get("history", "[]"))
+    data = request.get_json()
+    files = data.get("files", [])
+    question = data.get("question", "")
+    history = data.get("history", [])
 
-    if not case_text.strip() or not question.strip():
-        return jsonify({"error": "Missing case text or question"}), 400
+    if not files or not question.strip():
+        return jsonify({"error": "Missing case files or question"}), 400
 
-    _, numbered_text = prepare_case(case_text)
+    _, numbered_text = prepare_case(files)
 
     messages = [{"role": "system", "content": CHAT_PROMPT.format(case_file=numbered_text)}]
     for turn in history:
@@ -136,11 +137,10 @@ def chat():
             temperature=TEMPERATURE,
         )
     except Exception as e:
-        print("Groq error:", e)
+        print("Chat agent error:", e)
         return jsonify({"error": "Model call failed (possibly rate limited). Wait a few seconds and retry."}), 502
 
     return jsonify({"answer": response.choices[0].message.content})
 
-
 if __name__ == "__main__":
-    app.run(debug=True, port=5000)
+    app.run(debug=True, port=5001)

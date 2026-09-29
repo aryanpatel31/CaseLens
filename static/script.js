@@ -149,21 +149,25 @@ let chatHistory = [];
 
 async function askQuestion() {
     const question = document.getElementById("chatQuestion").value;
-    const caseText = document.getElementById("caseText").value;
     if (!question.trim()) return;
+    if (uploadedFileContents.length === 0) {
+        alert("Please analyze a case first.");
+        return;
+    }
 
     const res = await fetch("/chat", {
         method: "POST",
-        headers: { "Content-Type": "application/x-www-form-urlencoded" },
-        body: "case_text=" + encodeURIComponent(caseText) +
-              "&question=" + encodeURIComponent(question) +
-              "&history=" + encodeURIComponent(JSON.stringify(chatHistory))
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+            files: uploadedFileContents,
+            question: question,
+            history: chatHistory
+        })
     });
     const data = await res.json();
 
     const answer = data.answer || ("Error: " + data.error);
 
-    // only saving successful answers to history so a failed call doesn't pollute later context
     if (data.answer) {
         chatHistory.push({ question: question, answer: data.answer });
     }
