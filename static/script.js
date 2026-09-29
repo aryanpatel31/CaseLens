@@ -84,6 +84,7 @@ async function analyze() {
 
     renderDashboard(data.guidelines);
     renderContradictions(data.contradictions || []);
+    renderVerification(data.verification_flags || []);
     buildCaseViewer(data.combined_text);
     document.getElementById("chatSection").style.display = "block";
 }
@@ -139,6 +140,23 @@ function renderContradictions(contradictions) {
                 <div class="card-body">${c.detail} <span class="citation-link" onclick="jumpToLine('${c.citations}')">(${c.citations})</span></div>
             </div>
         `).join("");
+}
+
+function renderVerification(flags) {
+    let container = document.getElementById("verification");
+    if (!container) {
+        container = document.createElement("div");
+        container.id = "verification";
+        document.getElementById("dashboard").insertAdjacentElement("beforebegin", container);
+    }
+
+    if (flags.length === 0) {
+        container.innerHTML = `<div style="color:#34a853; font-size:13px; margin-bottom:10px;">✓ Verifier agent found no issues with citations or ratings.</div>`;
+        return;
+    }
+
+    container.innerHTML = "<h3 style='color:#fbbc04;'>⚠ Verifier Flags</h3>" +
+        flags.map(f => `<div class="card yellow" style="margin-bottom:8px;"><div class="card-body"><b>Guideline ${f.letter}:</b> ${f.issue}</div></div>`).join("");
 }
 
 function toggleDetails(i) {

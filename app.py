@@ -5,7 +5,7 @@ from flask import Flask, request, jsonify, render_template
 from dotenv import load_dotenv
 from groq import Groq
 
-from prompts import SYSTEM_PROMPT, CHAT_PROMPT
+from prompts import SYSTEM_PROMPT, CHAT_PROMPT, RECONCILER_PROMPT, VERIFIER_PROMPT
 
 load_dotenv()
 
@@ -57,8 +57,6 @@ def home():
     return render_template("index.html")
 
 
-from prompts import SYSTEM_PROMPT, CHAT_PROMPT, RECONCILER_PROMPT
-
 @app.route("/analyze", methods=["POST"])
 def analyze():
     data = request.get_json()
@@ -69,7 +67,7 @@ def analyze():
 
     combined_text, numbered_text = prepare_case(files)
 
-    # --- Agent 1: Analyst ---
+    # Agent 1: Analyst
     try:
         analyst_response = client.chat.completions.create(
             model=MODEL,
@@ -86,7 +84,7 @@ def analyze():
         return jsonify({"error": "Analysis failed (possibly rate limited). Please retry."}), 502
 
     contradictions = []
-    # --- Agent 2: Reconciler (only worth running with 2+ files) ---
+    # Agent 2: Reconciler (only worth running with 2+ files)
     if len(files) > 1:
         try:
             reconciler_response = client.chat.completions.create(
@@ -106,9 +104,30 @@ def analyze():
         except Exception as e:
             print("Reconciler agent error (non-fatal, continuing without contradictions):", e)
 
+    # Agent 3: Verifier
+    verification_flags = []
+    try:
+        verifier_response = client.chat.completions.create(
+            model=MODEL,
+            messages=[
+                {"role": "system", "content": VERIFIER_PROMPT},
+                {"role": "user", "content": (
+                    f"Case file:\n\n{numbered_text}\n\n"
+                    f"Analysis to verify:\n{json.dumps(analyst_result.get('guidelines', []))}"
+                )},
+            ],
+            response_format={"type": "json_object"},
+            temperature=TEMPERATURE,
+        )
+        verifier_result = json.loads(verifier_response.choices[0].message.content)
+        verification_flags = verifier_result.get("flags", [])
+    except Exception as e:
+        print("Verifier agent error (non-fatal, continuing without verification):", e)
+
     return jsonify({
         "guidelines": analyst_result.get("guidelines", []),
         "contradictions": contradictions,
+        "verification_flags": verification_flags,
         "combined_text": combined_text
     })
 

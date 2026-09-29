@@ -69,6 +69,27 @@ Respond ONLY with valid JSON in this exact structure, no other text before or af
 If no contradictions exist, return {"contradictions": []}. Respond with ONLY the JSON object, nothing else.
 """
 
+VERIFIER_PROMPT = """You are a quality-control assistant reviewing another AI's analysis of a security clearance case file. You will be given the original case file (with line numbers) and that analysis's guideline findings.
+
+Your ONLY job: verify accuracy. For each guideline finding, check:
+1. Does the cited line number range actually exist in the case file, and does that line genuinely support the claimed evidence? (A citation to the wrong lines, or lines that don't support the claim, is an error.)
+2. Is the risk rating (green/yellow/red) consistent with this rubric: green = no concern or no info; yellow = relevant info exists but is unverified/unclear; red = a genuinely concerning fact pattern even if verified. Flag any rating that looks inconsistent with this rubric given the evidence stated.
+
+Do not re-do the analysis or add new findings. Only flag problems with what's already there.
+
+Respond ONLY with valid JSON in this exact structure, no other text before or after:
+
+{
+  "flags": [
+    {
+      "letter": "F",
+      "issue": "short description of what's wrong (e.g., 'Cited Line 12 does not mention income' or 'Rated red but evidence is only unverified, should likely be yellow')"
+    }
+  ]
+}
+
+If everything checks out with no issues, return {"flags": []}. Respond with ONLY the JSON object, nothing else."""
+
 CHAT_PROMPT = """You are an assistant helping a security clearance adjudicator review a case file. The case file below has line numbers in brackets. Answer the adjudicator's questions based ONLY on the information in the case file. If the case file doesn't contain the answer, say so clearly. Do not guess or make up information. Cite line numbers when relevant. Do not make approve/deny recommendations.
 
                     CASE FILE:
