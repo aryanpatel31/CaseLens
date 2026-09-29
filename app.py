@@ -57,6 +57,8 @@ def home():
     return render_template("index.html")
 
 
+from prompts import SYSTEM_PROMPT, CHAT_PROMPT, RECONCILER_PROMPT
+
 @app.route("/analyze", methods=["POST"])
 def analyze():
     data = request.get_json()
@@ -67,27 +69,48 @@ def analyze():
 
     combined_text, numbered_text = prepare_case(files)
 
+    # --- Agent 1: Analyst ---
     try:
-        response = client.chat.completions.create(
+        analyst_response = client.chat.completions.create(
             model=MODEL,
             messages=[
                 {"role": "system", "content": SYSTEM_PROMPT},
-                {"role": "user", "content": f"Here is the case file (may include multiple source documents, marked with === FILE: name === headers):\n\n{numbered_text}"},
+                {"role": "user", "content": f"Here is the case file:\n\n{numbered_text}"},
             ],
             response_format={"type": "json_object"},
             temperature=TEMPERATURE,
         )
+        analyst_result = json.loads(analyst_response.choices[0].message.content)
     except Exception as e:
-        print("Groq error:", e)
-        return jsonify({"error": "Model call failed (possibly rate limited). Wait a few seconds and retry."}), 502
+        print("Analyst agent error:", e)
+        return jsonify({"error": "Analysis failed (possibly rate limited). Please retry."}), 502
 
-    raw = response.choices[0].message.content
-    try:
-        parsed = json.loads(raw)
-    except json.JSONDecodeError:
-        return jsonify({"error": "Model returned invalid JSON. Try again."}), 500
+    contradictions = []
+    # --- Agent 2: Reconciler (only worth running with 2+ files) ---
+    if len(files) > 1:
+        try:
+            reconciler_response = client.chat.completions.create(
+                model=MODEL,
+                messages=[
+                    {"role": "system", "content": RECONCILER_PROMPT},
+                    {"role": "user", "content": (
+                        f"Analyst's guideline findings (for context only):\n{json.dumps(analyst_result)}\n\n"
+                        f"Case file:\n\n{numbered_text}"
+                    )},
+                ],
+                response_format={"type": "json_object"},
+                temperature=TEMPERATURE,
+            )
+            reconciler_result = json.loads(reconciler_response.choices[0].message.content)
+            contradictions = reconciler_result.get("contradictions", [])
+        except Exception as e:
+            print("Reconciler agent error (non-fatal, continuing without contradictions):", e)
 
-    return jsonify({"guidelines": parsed.get("guidelines", []), "combined_text": combined_text})
+    return jsonify({
+        "guidelines": analyst_result.get("guidelines", []),
+        "contradictions": contradictions,
+        "combined_text": combined_text
+    })
 
 @app.route("/chat", methods=["POST"])
 def chat():

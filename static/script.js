@@ -21,22 +21,28 @@ function linkifyCitations(text) {
 }
 
 function jumpToLine(citationStr) {
-    const nums = citationStr.match(/\d+/g);
-    if (!nums) return;
-
     document.querySelectorAll(".line.highlighted").forEach(el => el.classList.remove("highlighted"));
 
-    const start = parseInt(nums[0]);
-    const end = nums[1] ? parseInt(nums[1]) : start;
-
+    // split on commas to handle multiple separate citations like "Lines 10-11, Line 58"
+    const groups = citationStr.split(",");
     let firstEl = null;
-    for (let i = start; i <= end; i++) {
-        const el = document.getElementById(`line-${i}`);
-        if (el) {
-            el.classList.add("highlighted");
-            if (!firstEl) firstEl = el;
+
+    groups.forEach(group => {
+        const nums = group.match(/\d+/g);
+        if (!nums) return;
+
+        const start = parseInt(nums[0]);
+        const end = nums[1] ? parseInt(nums[1]) : start;
+
+        for (let i = start; i <= end; i++) {
+            const el = document.getElementById(`line-${i}`);
+            if (el) {
+                el.classList.add("highlighted");
+                if (!firstEl) firstEl = el;
+            }
         }
-    }
+    });
+
     if (firstEl) firstEl.scrollIntoView({ behavior: "smooth", block: "center" });
 }
 
@@ -77,6 +83,7 @@ async function analyze() {
     }
 
     renderDashboard(data.guidelines);
+    renderContradictions(data.contradictions || []);
     buildCaseViewer(data.combined_text);
     document.getElementById("chatSection").style.display = "block";
 }
@@ -110,6 +117,28 @@ function renderDashboard(guidelines) {
         `;
         dashboard.appendChild(card);
     });
+}
+
+function renderContradictions(contradictions) {
+    let container = document.getElementById("contradictions");
+    if (!container) {
+        container = document.createElement("div");
+        container.id = "contradictions";
+        document.getElementById("dashboard").insertAdjacentElement("beforebegin", container);
+    }
+
+    if (contradictions.length === 0) {
+        container.innerHTML = "";
+        return;
+    }
+
+    container.innerHTML = "<h3 style='color:#ea4335;'>⚠ Cross-Source Contradictions</h3>" +
+        contradictions.map(c => `
+            <div class="card red" style="margin-bottom:10px;">
+                <div class="card-header"><span class="card-title">${c.summary}</span></div>
+                <div class="card-body">${c.detail} <span class="citation-link" onclick="jumpToLine('${c.citations}')">(${c.citations})</span></div>
+            </div>
+        `).join("");
 }
 
 function toggleDetails(i) {
