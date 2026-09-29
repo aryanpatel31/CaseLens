@@ -40,18 +40,31 @@ function jumpToLine(citationStr) {
     if (firstEl) firstEl.scrollIntoView({ behavior: "smooth", block: "center" });
 }
 
+let uploadedFileContents = []; // [{name: "file1.txt", text: "..."}]
+
+async function readFiles(fileList) {
+    const contents = [];
+    for (const file of fileList) {
+        const text = await file.text();
+        contents.push({ name: file.name, text: text });
+    }
+    return contents;
+}
+
 async function analyze() {
-    const text = document.getElementById("caseText").value;
-    if (!text.trim()) return;
+    const fileInput = document.getElementById("caseFiles");
+    if (fileInput.files.length === 0) return;
 
     document.getElementById("analyzeBtn").disabled = true;
     document.getElementById("loading").style.display = "block";
     document.getElementById("dashboard").innerHTML = "";
 
+    uploadedFileContents = await readFiles(fileInput.files);
+
     const res = await fetch("/analyze", {
         method: "POST",
-        headers: { "Content-Type": "application/x-www-form-urlencoded" },
-        body: "case_text=" + encodeURIComponent(text)
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ files: uploadedFileContents })
     });
     const data = await res.json();
 
@@ -64,7 +77,7 @@ async function analyze() {
     }
 
     renderDashboard(data.guidelines);
-    buildCaseViewer(text);
+    buildCaseViewer(data.combined_text);
     document.getElementById("chatSection").style.display = "block";
 }
 

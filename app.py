@@ -35,10 +35,21 @@ def redact_pii(text):
     return redacted
 
 
-def prepare_case(case_text):
-    """Redact PII first, then number lines. Every LLM call goes through this."""
-    redacted = redact_pii(case_text)
-    return redacted, add_line_numbers(redacted)
+def prepare_case(files):
+    """
+    files: list of {"name": ..., "text": ...}
+    Returns: (combined_redacted_text_for_display, numbered_text_for_llm)
+    Each file is redacted individually, then joined with clear boundary markers.
+    Line numbers are continuous across the whole combined text so citations stay simple.
+    """
+    combined_parts = []
+    for f in files:
+        redacted = redact_pii(f["text"])
+        combined_parts.append(f"=== FILE: {f['name']} ===\n{redacted}")
+
+    combined_text = "\n\n".join(combined_parts)
+    numbered_text = add_line_numbers(combined_text)
+    return combined_text, numbered_text
 
 
 @app.route("/")
@@ -48,18 +59,20 @@ def home():
 
 @app.route("/analyze", methods=["POST"])
 def analyze():
-    case_text = request.form.get("case_text", "")
-    if not case_text.strip():
-        return jsonify({"error": "No case text provided"}), 400
+    data = request.get_json()
+    files = data.get("files", [])
 
-    redacted_text, numbered_text = prepare_case(case_text)
+    if not files:
+        return jsonify({"error": "No files provided"}), 400
+
+    combined_text, numbered_text = prepare_case(files)
 
     try:
         response = client.chat.completions.create(
             model=MODEL,
             messages=[
                 {"role": "system", "content": SYSTEM_PROMPT},
-                {"role": "user", "content": f"Here is the case file:\n\n{numbered_text}"},
+                {"role": "user", "content": f"Here is the case file (may include multiple source documents, marked with === FILE: name === headers):\n\n{numbered_text}"},
             ],
             response_format={"type": "json_object"},
             temperature=TEMPERATURE,
@@ -74,11 +87,7 @@ def analyze():
     except json.JSONDecodeError:
         return jsonify({"error": "Model returned invalid JSON. Try again."}), 500
 
-    print("=== PARSED GUIDELINES ===")  # remove before demo
-    print(json.dumps(parsed, indent=2))
-
-    return jsonify({"guidelines": parsed.get("guidelines", []), "redacted_input": redacted_text})
-
+    return jsonify({"guidelines": parsed.get("guidelines", []), "combined_text": combined_text})
 
 @app.route("/chat", methods=["POST"])
 def chat():
