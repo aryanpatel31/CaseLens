@@ -57,13 +57,61 @@ async function readFiles(fileList) {
     return contents;
 }
 
+let selectedFiles = []; // File objects currently selected
+
+const dropZone = document.getElementById("dropZone");
+const fileInput = document.getElementById("caseFiles");
+const fileListDiv = document.getElementById("fileList");
+
+dropZone.addEventListener("click", () => fileInput.click());
+
+fileInput.addEventListener("change", () => {
+    addFiles(Array.from(fileInput.files));
+});
+
+dropZone.addEventListener("dragover", (e) => {
+    e.preventDefault();
+    dropZone.classList.add("dragover");
+});
+
+dropZone.addEventListener("dragleave", () => {
+    dropZone.classList.remove("dragover");
+});
+
+dropZone.addEventListener("drop", (e) => {
+    e.preventDefault();
+    dropZone.classList.remove("dragover");
+    addFiles(Array.from(e.dataTransfer.files));
+});
+
+function addFiles(newFiles) {
+    newFiles.forEach(f => {
+        if (!selectedFiles.some(existing => existing.name === f.name)) {
+            selectedFiles.push(f);
+        }
+    });
+    renderFileList();
+}
+
+function removeFile(name) {
+    selectedFiles = selectedFiles.filter(f => f.name !== name);
+    renderFileList();
+}
+
+function renderFileList() {
+    fileListDiv.innerHTML = selectedFiles.map(f =>
+        `<span class="file-chip">${f.name} <span class="remove-file" onclick="event.stopPropagation(); removeFile('${f.name}')">✕</span></span>`
+    ).join("");
+}
+
 async function analyze() {
-    const fileInput = document.getElementById("caseFiles");
-    if (fileInput.files.length === 0) return;
+    if (selectedFiles.length === 0) return;
 
     document.getElementById("analyzeBtn").disabled = true;
     document.getElementById("loading").style.display = "block";
     document.getElementById("dashboard").innerHTML = "";
+
+    uploadedFileContents = await readFiles(selectedFiles);
 
     uploadedFileContents = await readFiles(fileInput.files);
 

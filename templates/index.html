@@ -8,7 +8,13 @@
     <h1>CaseLens</h1>
     <div class="subtitle">AI-assisted evidence organization for security clearance review — decision support only, not decision-making.</div>
 
-    <input type="file" id="caseFiles" multiple accept=".txt">
+    <div id="dropZone" class="drop-zone">
+    <div class="drop-zone-text">
+        <strong>Drop case files here</strong> or click to browse
+    </div>
+    <div id="fileList" class="file-list"></div>
+    </div>
+<input type="file" id="caseFiles" multiple accept=".txt" style="display:none;">
     <br>
     <button onclick="analyze()" id="analyzeBtn">Analyze Case</button>
     <div id="loading">Analyzing case file...</div>

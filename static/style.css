@@ -206,3 +206,48 @@ button:disabled {
     margin-top: 10px;
     font-size: 14px;
 }
+.drop-zone {
+    border: 2px dashed #ccc;
+    border-radius: 10px;
+    padding: 30px 20px;
+    text-align: center;
+    cursor: pointer;
+    background: white;
+    transition: border-color 0.2s, background 0.2s;
+}
+.drop-zone:hover, .drop-zone.dragover {
+    border-color: #1a73e8;
+    background: #f5f9ff;
+}
+.drop-zone-text {
+    color: #666;
+    font-size: 14px;
+}
+.drop-zone-text strong {
+    color: #1a1a1a;
+}
+.file-list {
+    margin-top: 12px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    justify-content: center;
+}
+.file-chip {
+    background: #f0f0f0;
+    border-radius: 14px;
+    padding: 4px 12px;
+    font-size: 12px;
+    color: #333;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+.file-chip .remove-file {
+    cursor: pointer;
+    color: #999;
+    font-weight: bold;
+}
+.file-chip .remove-file:hover {
+    color: #ea4335;
+}
