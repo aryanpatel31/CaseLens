@@ -29,7 +29,7 @@ def redact_pii(text):
     for ent in reversed(doc.ents):
         if ent.label_ == "PERSON" and len(ent.text.split()) < 2:
             continue  # skip likely false positives (single capitalized words)
-        if ent.label_ in ("PERSON", "GPE", "ORG", "LOC", "NORP"):
+        if ent.label_ in ("PERSON", "ORG", "LOC", "NORP"):
             placeholder = f"[REDACTED_{ent.label_}]"
             redacted = redacted[:ent.start_char] + placeholder + redacted[ent.end_char:]
     return redacted
