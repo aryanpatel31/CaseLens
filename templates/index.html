@@ -17,7 +17,12 @@
 <input type="file" id="caseFiles" multiple accept=".txt" style="display:none;">
     <br>
     <button onclick="analyze()" id="analyzeBtn">Analyze Case</button>
-    <div id="loading">Analyzing case file...</div>
+    <div id="loading">
+        <div class="loading-step" id="step-redact"><span class="step-icon"></span> Redacting personal information</div>
+        <div class="loading-step" id="step-analyst"><span class="step-icon"></span> Analyst agent mapping evidence to guidelines</div>
+        <div class="loading-step" id="step-reconciler"><span class="step-icon"></span> Reconciler agent cross-checking sources</div>
+        <div class="loading-step" id="step-verifier"><span class="step-icon"></span> Verifier agent auditing results</div>
+    </div>
 
     <div id="dashboard"></div>
     <div id="caseViewer"></div>

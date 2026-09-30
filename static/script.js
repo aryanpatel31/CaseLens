@@ -111,9 +111,9 @@ async function analyze() {
     document.getElementById("loading").style.display = "block";
     document.getElementById("dashboard").innerHTML = "";
 
-    uploadedFileContents = await readFiles(selectedFiles);
+    const stopAnimation = animateLoadingSteps();
 
-    uploadedFileContents = await readFiles(fileInput.files);
+    uploadedFileContents = await readFiles(selectedFiles);
 
     const res = await fetch("/analyze", {
         method: "POST",
@@ -122,6 +122,7 @@ async function analyze() {
     });
     const data = await res.json();
 
+    stopAnimation();
     document.getElementById("loading").style.display = "none";
     document.getElementById("analyzeBtn").disabled = false;
 
@@ -241,4 +242,25 @@ async function askQuestion() {
     const historyDiv = document.getElementById("chatHistory");
     historyDiv.innerHTML += `<div class="chat-turn"><div class="chat-q">Q: ${question}</div><div>${linkifyCitations(answer)}</div></div>`;
     document.getElementById("chatQuestion").value = "";
+}
+
+function animateLoadingSteps() {
+    const steps = ["step-redact", "step-analyst", "step-reconciler", "step-verifier"];
+    let current = 0;
+
+    steps.forEach(id => document.getElementById(id).classList.remove("active", "done"));
+
+    function advance() {
+        if (current > 0) {
+            document.getElementById(steps[current - 1]).classList.remove("active");
+            document.getElementById(steps[current - 1]).classList.add("done");
+        }
+        if (current < steps.length) {
+            document.getElementById(steps[current]).classList.add("active");
+            current++;
+            loadingTimer = setTimeout(advance, current === 1 ? 500 : 13000);
+        }
+    }
+    advance();
+    return () => clearTimeout(loadingTimer); // returns a stop function
 }
