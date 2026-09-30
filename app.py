@@ -25,13 +25,15 @@ def add_line_numbers(text):
 def redact_pii(text):
     doc = nlp(text)
     redacted = text
-    # process in reverse so character offsets don't shift as replacements happen
+    # Process in reverse so character offsets don't shift during replacements
     for ent in reversed(doc.ents):
+        # Skip single-word PERSON matches to reduce false positives
         if ent.label_ == "PERSON" and len(ent.text.split()) < 2:
-            continue  # skip likely false positives (single capitalized words)
-        if ent.label_ in ("PERSON", "ORG", "LOC", "NORP"):
+            continue
+        if ent.label_ == "PERSON":
             placeholder = f"[REDACTED_{ent.label_}]"
             redacted = redacted[:ent.start_char] + placeholder + redacted[ent.end_char:]
+
     return redacted
 
 
